@@ -1,0 +1,13 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Pytest test cache
+.pytest_cache/
+
+# Local SQLite databases (recreated via code, don't track in Git)
+*.db
+*.sqlite3
+
+# Virtual environment folder
+.venv/
