@@ -27,4 +27,4 @@ jobs:
 
     - name: Run Pytest suite
       run: |
-        pytest -vho3
+        pytest -v
