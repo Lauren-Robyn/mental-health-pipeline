@@ -9,7 +9,7 @@ MALE_VARIANTS = {
 
 FEMALE_VARIANTS = {
     "female", "cis female", "f", "woman", "femake", "female ", "cis-female/femme",
-    "female (cis)", "femail"
+    "female (cis)", "femail", "cis woman", "femail"
 }
 
 def clean_age(val):
