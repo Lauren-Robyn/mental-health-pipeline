@@ -8,7 +8,7 @@ from src.ingestion.cleaner import (
     clean_survey_dataframe
 )
 
-# --- 1. Age Boundary Cleaning ---
+# Age Boundary Cleaning
 @pytest.mark.parametrize("input_age, expected_age", [
     (25, 25),
     (18, 18),
@@ -24,7 +24,7 @@ def test_clean_age_filters_out_of_range_values(input_age, expected_age):
     assert clean_age(input_age) == expected_age
 
 
-# --- 2. Gender Standardization ---
+# Gender Standardization 
 @pytest.mark.parametrize("raw_gender, expected_bucket", [
     ("Male", "Male"),
     ("male", "Male"),
@@ -49,7 +49,7 @@ def test_standardize_gender_maps_variants_to_controlled_categories(raw_gender, e
     assert standardize_gender(raw_gender) == expected_bucket
 
 
-# --- 3. Boolean / Yes-No Standardization ---
+# Boolean / Yes-No Standardization 
 @pytest.mark.parametrize("raw_val, expected_bool_str", [
     ("Yes", "Yes"),
     ("Y", "Yes"),
@@ -66,7 +66,7 @@ def test_standardize_boolean_normalizes_flags(raw_val, expected_bool_str):
     assert standardize_boolean(raw_val) == expected_bool_str
 
 
-# --- 4. Preserving 'Don't know' in DataFrame Cleaning ---
+# Preserving 'Don't know' in DataFrame Cleaning 
 def test_clean_survey_dataframe_preserves_dont_know_and_drops_bad_ages():
     """Verifies that DataFrame cleaning keeps 'Don't know' and filters invalid ages."""
     raw_data = pd.DataFrame([
@@ -83,7 +83,7 @@ def test_clean_survey_dataframe_preserves_dont_know_and_drops_bad_ages():
             "no_employees": "6-25",
             "remote_work": "1",
             "tech_company": "Yes",
-            "benefits": "Don't know",      # Must be preserved!
+            "benefits": "Don't know",      
             "care_options": "Not sure",
             "wellness_program": "No",
             "seek_help": "Don't know",
@@ -101,7 +101,7 @@ def test_clean_survey_dataframe_preserves_dont_know_and_drops_bad_ages():
         },
         {
             "Timestamp": "2014-08-27 11:29:32",
-            "Age": -29,                    # Invalid age -> row should be dropped or cleaned
+            "Age": -29,                    
             "Gender": "cis woman",
             "Country": "Canada",
             "state": None,
@@ -132,11 +132,11 @@ def test_clean_survey_dataframe_preserves_dont_know_and_drops_bad_ages():
 
     cleaned_df = clean_survey_dataframe(raw_data)
 
-    # 1. Invalid age row (-29) must be filtered out so the DB constraint never crashes
+    # Invalid age row (-29) must be filtered out so the DB constraint never crashes
     assert len(cleaned_df) == 1
     assert cleaned_df.iloc[0]["age"] == 25
     assert cleaned_df.iloc[0]["gender"] == "Male"
     assert cleaned_df.iloc[0]["remote_work"] == "Yes"
     
-    # 2. 'Don't know' must NOT be turned into null/NaN
+    # 'Don't know' must NOT be turned into null/NaN
     assert cleaned_df.iloc[0]["benefits"] == "Don't know"
