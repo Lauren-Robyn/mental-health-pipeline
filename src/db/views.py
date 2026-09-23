@@ -14,7 +14,12 @@ def create_views(engine: Engine) -> None:
     with engine.connect() as conn:
         for sql_file in sorted(VIEWS_DIR.glob("*.sql")):
             with open(sql_file, "r", encoding="utf-8") as f:
-                ddl = f.read().strip()
-            if ddl:
-                conn.execute(text(ddl))
+                content = f.read() 
+
+                statements = content.split(";")
+                for stmt in statements: 
+                    clean_stmt = stmt.strip()
+                    if clean_stmt: 
+                        conn.execute(text(clean_stmt))
+
         conn.commit()

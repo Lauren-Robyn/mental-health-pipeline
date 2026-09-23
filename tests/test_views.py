@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import text 
 from src.db.models import RespondentRecord
 
-#following TDD, views.py does not yet exist 
 from src.db.views import create_views
 
 def seed_sample_records(session, records):
