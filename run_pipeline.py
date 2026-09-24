@@ -1,43 +1,32 @@
-# run_pipeline.py
-import sys
 from pathlib import Path
 from src.db.session import get_engine, init_db, get_session
 from src.db.loader import load_survey_data
+from src.db.views import create_views
+
+RAW_DATA_PATH = Path(__file__).resolve().parent / "data" / "raw" / "survey.csv"
+
 
 def main():
-    csv_path = Path("data/raw/survey.csv")
-    db_path = "sqlite:///data/survey.db"
+    print("1. Creating database engine...")
+    engine = get_engine()
 
-    print("========================================")
-    print("   Starting Survey Data Pipeline...    ")
-    print("========================================")
-
-    if not csv_path.exists():
-        print(f"Error: Missing dataset at {csv_path}")
-        print("Please place the uncorrupted survey.csv inside data/raw/")
-        sys.exit(1)
-
-    # Initialize SQLite Database & Tables
-    print("1. Initializing database schema...")
-    engine = get_engine(db_path)
+    print("2. Initializing database schema...")
     init_db(engine)
 
-    # Execute Data Cleaning & Loading
-    print("2. Sanitizing and loading survey records...")
+    print(f"3. Cleaning and loading survey records from {RAW_DATA_PATH}...")
     session = get_session(engine)
     try:
-        inserted_count = load_survey_data(str(csv_path), session)
-        print(f"Successfully loaded {inserted_count} valid records into respondent_record.")
-    except Exception as e:
-        session.rollback()
-        print(f"Pipeline failed during ingestion: {e}")
-        sys.exit(1)
+        inserted_count = load_survey_data(RAW_DATA_PATH, session)
+        print(f"   -> Successfully processed/loaded records: {inserted_count}")
     finally:
         session.close()
 
-    print("========================================")
-    print("   Pipeline Execution Complete!         ")
-    print("========================================")
+    print("4. Executing analytical view DDL scripts in db/views/...")
+    create_views(engine)
+    print("   -> All analytical views successfully registered.")
+
+    print("\nPipeline execution complete!")
+
 
 if __name__ == "__main__":
     main()
