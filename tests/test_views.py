@@ -158,3 +158,133 @@ def test_view_work_interference_aggregates_include_null_bucket(db_session):
 
     # Verify count for '100-500'
     assert result_map.get(("100-500", "Sometimes")) == 1
+
+# --- User Story 3 (Issue 7) ---
+def test_view_stigma_index_calculates_weighted_scores_correctly(db_session):
+    """
+    Verifies v_stigma_index calculates the average stigma score per company size:
+    - High stigma respondent (size '6-25'):
+        consequence='Yes' (2) + coworkers='No' (2) + supervisor='No' (2) = 6 points
+    - Low stigma respondent (size '6-25'):
+        consequence='No' (0) + coworkers='Yes' (0) + supervisor='Yes' (0) = 0 points
+      Expected average for '6-25' = (6 + 0) / 2 = 3.00
+
+    - Moderate stigma respondent (size '100-500'):
+        consequence='Maybe' (1) + coworkers='Some of them' (1) + supervisor='Yes' (0) = 2 points
+      Expected average for '100-500' = 2 / 1 = 2.00
+    """
+    sample_records = [
+        # Company size '6-25' - High Stigma (Score = 6)
+        {
+            "age": 25, "gender": "Male", "country": "United States",
+            "treatment": "No", "remote_work": "No", "benefits": "No",
+            "care_options": "No", "no_employees": "6-25",
+            "mental_health_consequence": "Yes",
+            "coworkers": "No",
+            "supervisor": "No"
+        },
+        # Company size '6-25' - Low Stigma (Score = 0)
+        {
+            "age": 30, "gender": "Female", "country": "United States",
+            "treatment": "Yes", "remote_work": "Yes", "benefits": "Yes",
+            "care_options": "Yes", "no_employees": "6-25",
+            "mental_health_consequence": "No",
+            "coworkers": "Yes",
+            "supervisor": "Yes"
+        },
+        # Company size '100-500' - Moderate Stigma (Score = 2)
+        {
+            "age": 42, "gender": "Other", "country": "Canada",
+            "treatment": "Yes", "remote_work": "No", "benefits": "Yes",
+            "care_options": "Yes", "no_employees": "100-500",
+            "mental_health_consequence": "Maybe",
+            "coworkers": "Some of them",
+            "supervisor": "Yes"
+        }
+    ]
+
+    seed_sample_records(db_session, sample_records)
+    create_views(db_session.bind)
+
+    query = text("""
+        SELECT no_employees, respondent_count, avg_stigma_score
+        FROM v_stigma_index
+        ORDER BY no_employees
+    """)
+    rows = db_session.execute(query).fetchall()
+
+    result_map = {r.no_employees: (r.respondent_count, r.avg_stigma_score) for r in rows}
+
+    count_small, avg_small = result_map.get("6-25")
+    assert count_small == 2
+    assert pytest.approx(avg_small, 0.01) == 3.00
+
+    count_med, avg_med = result_map.get("100-500")
+    assert count_med == 1
+    assert pytest.approx(avg_med, 0.01) == 2.00
+
+# --- User Story 3 (Issue 7) ---
+def test_view_stigma_index_calculates_weighted_scores_correctly(db_session):
+    """
+    Verifies v_stigma_index calculates the average stigma score per company size:
+    - High stigma respondent (size '6-25'):
+        consequence='Yes' (2) + coworkers='No' (2) + supervisor='No' (2) = 6 points
+    - Low stigma respondent (size '6-25'):
+        consequence='No' (0) + coworkers='Yes' (0) + supervisor='Yes' (0) = 0 points
+      Expected average for '6-25' = (6 + 0) / 2 = 3.00
+
+    - Moderate stigma respondent (size '100-500'):
+        consequence='Maybe' (1) + coworkers='Some of them' (1) + supervisor='Yes' (0) = 2 points
+      Expected average for '100-500' = 2 / 1 = 2.00
+    """
+    sample_records = [
+        # Company size '6-25' - High Stigma (Score = 6)
+        {
+            "age": 25, "gender": "Male", "country": "United States",
+            "treatment": "No", "remote_work": "No", "benefits": "No",
+            "care_options": "No", "no_employees": "6-25",
+            "mental_health_consequence": "Yes",
+            "coworkers": "No",
+            "supervisor": "No"
+        },
+        # Company size '6-25' - Low Stigma (Score = 0)
+        {
+            "age": 30, "gender": "Female", "country": "United States",
+            "treatment": "Yes", "remote_work": "Yes", "benefits": "Yes",
+            "care_options": "Yes", "no_employees": "6-25",
+            "mental_health_consequence": "No",
+            "coworkers": "Yes",
+            "supervisor": "Yes"
+        },
+        # Company size '100-500' - Moderate Stigma (Score = 2)
+        {
+            "age": 42, "gender": "Other", "country": "Canada",
+            "treatment": "Yes", "remote_work": "No", "benefits": "Yes",
+            "care_options": "Yes", "no_employees": "100-500",
+            "mental_health_consequence": "Maybe",
+            "coworkers": "Some of them",
+            "supervisor": "Yes"
+        }
+    ]
+
+    seed_sample_records(db_session, sample_records)
+    create_views(db_session.bind)
+
+    query = text("""
+        SELECT no_employees, respondent_count, avg_stigma_score
+        FROM v_stigma_index
+        ORDER BY no_employees
+    """)
+    rows = db_session.execute(query).fetchall()
+
+    result_map = {r.no_employees: (r.respondent_count, r.avg_stigma_score) for r in rows}
+
+    # Verify '6-25' group
+    count_small, avg_small = result_map.get("6-25")
+    assert count_small == 2
+    assert pytest.approx(avg_small, 0.01) == 3.00
+
+    # Verify '100-500' group
+    count_med, avg_med = result_map.get("100-500")
+    assert count_med == 1
+    assert pytest.approx(avg_med, 0.01) == 2.00

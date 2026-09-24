@@ -23,3 +23,4 @@ def create_views(engine: Engine) -> None:
                         conn.execute(text(clean_stmt))
 
         conn.commit()
+
