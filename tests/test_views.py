@@ -288,3 +288,83 @@ def test_view_stigma_index_calculates_weighted_scores_correctly(db_session):
     count_med, avg_med = result_map.get("100-500")
     assert count_med == 1
     assert pytest.approx(avg_med, 0.01) == 2.00
+
+
+
+# --- User Story 4 (Issue 8) ---
+def test_view_support_awareness_calculates_metrics_correctly(db_session):
+    """
+    Verifies v_support_awareness computes benefit counts and awareness rate:
+    - Size '6-25' (2 respondents):
+        1 with benefits='Yes', care_options='Yes'
+        1 with benefits="Don't know", care_options='No'
+      -> total=2, benefits_yes=1, benefits_dont_know=1, care_options_yes=1
+      -> awareness_rate = 1 / 2 = 0.5000
+
+    - Size '100-500' (2 respondents):
+        2 with benefits='Yes', care_options='Yes'
+      -> total=2, benefits_yes=2, benefits_dont_know=0, care_options_yes=2
+      -> awareness_rate = 2 / 2 = 1.0000
+    """
+    sample_records = [
+        # Size '6-25'
+        {
+            "age": 28, "gender": "Female", "country": "United States",
+            "treatment": "No", "remote_work": "No",
+            "benefits": "Yes", "care_options": "Yes",
+            "no_employees": "6-25"
+        },
+        {
+            "age": 34, "gender": "Male", "country": "United States",
+            "treatment": "No", "remote_work": "Yes",
+            "benefits": "Don't know", "care_options": "No",
+            "no_employees": "6-25"
+        },
+        # Size '100-500'
+        {
+            "age": 45, "gender": "Male", "country": "United States",
+            "treatment": "Yes", "remote_work": "No",
+            "benefits": "Yes", "care_options": "Yes",
+            "no_employees": "100-500"
+        },
+        {
+            "age": 29, "gender": "Female", "country": "Canada",
+            "treatment": "Yes", "remote_work": "No",
+            "benefits": "Yes", "care_options": "Yes",
+            "no_employees": "100-500"
+        }
+    ]
+
+    seed_sample_records(db_session, sample_records)
+    create_views(db_session.bind)
+
+    query = text("""
+        SELECT
+            no_employees,
+            total_respondents,
+            benefits_yes_count,
+            benefits_dont_know_count,
+            care_options_yes_count,
+            awareness_rate
+        FROM v_support_awareness
+        ORDER BY no_employees
+    """)
+    rows = db_session.execute(query).fetchall()
+
+    result_map = {r.no_employees: r for r in rows}
+
+    # Verify '6-25'
+    r_small = result_map.get("6-25")
+    assert r_small.total_respondents == 2
+    assert r_small.benefits_yes_count == 1
+    assert r_small.benefits_dont_know_count == 1
+    assert r_small.care_options_yes_count == 1
+    assert pytest.approx(r_small.awareness_rate, 0.0001) == 0.5000
+
+    # Verify '100-500'
+    r_med = result_map.get("100-500")
+    assert r_med.total_respondents == 2
+    assert r_med.benefits_yes_count == 2
+    assert r_med.benefits_dont_know_count == 0
+    assert r_med.care_options_yes_count == 2
+    assert pytest.approx(r_med.awareness_rate, 0.0001) == 1.0000
